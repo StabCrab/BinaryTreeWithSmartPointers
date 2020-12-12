@@ -11,6 +11,6 @@ int main()
     tree.insertNode(5);
     tree.insertNode(7);
     tree.printAllNodes(tree.getRoot().get());
-    tree.deleteNode(5);
+    tree.deleteNode(7);
     tree.printAllNodes(tree.getRoot().get());
 }

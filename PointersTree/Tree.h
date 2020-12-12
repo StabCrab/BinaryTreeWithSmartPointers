@@ -8,7 +8,7 @@
 #include <iostream>
 class Node
 {
-public:
+private:
     int data;
     std::weak_ptr<Node> parent;
     std::shared_ptr<Node> childLeft;
@@ -20,6 +20,11 @@ public:
     void setLeftChild(std::shared_ptr<Node> node);
     void setRightChild(std::shared_ptr<Node> node);
     void setParent(std::shared_ptr<Node> node);
+    void setData(int value);
+
+    std::shared_ptr<Node> getLeftChild();
+    std::shared_ptr<Node> getRightChild();
+    std::weak_ptr<Node> getParent();
 };
 
 
@@ -28,6 +33,7 @@ public:
 class Tree
 {
 public:
+    ~Tree();
     Tree();
     void deleteNode(int value);
     int insertNode(const int &);
@@ -37,6 +43,7 @@ public:
     Node* findNode(Node*, const int &);
     Node* findSuccsessor(const int &);
     std::shared_ptr<Node> getRoot();
+
 private:
     std::shared_ptr<Node> rootNode;
 };

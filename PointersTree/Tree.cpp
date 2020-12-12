@@ -7,9 +7,7 @@ Node::Node(const int &value)
 {
     std::cout << "Node:" + std::to_string(value) + " created" << std::endl;
     data = value;
-    //parent = nullptr;
-    //childLeft = nullptr;
-    //childRight = nullptr;
+
 }
 
 int Node::getData()
@@ -32,10 +30,29 @@ void Node::setParent(std::shared_ptr<Node> node)
     parent = std::weak_ptr<Node>(node);
 }
 
+void Node::setData(int value)
+{
+    data = value;
+}
+
 Node::~Node()
 {
     std::cout << "Node:" + std::to_string(data) + " destructed" << std::endl;
 }
+
+std::shared_ptr<Node> Node::getLeftChild() {
+    return childLeft;
+}
+
+std::shared_ptr<Node> Node::getRightChild()
+{
+    return childRight;
+}
+
+std::weak_ptr<Node> Node::getParent() {
+    return parent;
+}
+
 
 Tree::Tree()
 {
@@ -47,27 +64,32 @@ void Tree::deleteNode(int value)
     Node* node = findNode(rootNode.get(), value);
     Node* removedNode;
     std::shared_ptr<Node> nodeReplacement;
-    if(node->childLeft == nullptr || node->childRight == nullptr)               /* в этой и следующих двух строках ищем вершину removedNode, которую мы потом вырежем из дерева. Это либо node, либо следующий за node */
+    if(node->getLeftChild() == nullptr || node->getRightChild() == nullptr)               /* в этой и следующих двух строках ищем вершину removedNode, которую мы потом вырежем из дерева. Это либо node, либо следующий за node */
         removedNode = node;
     else
         removedNode = findSuccsessor(node->getData());
-    if(removedNode->childLeft != nullptr)                                  /* nodeReplacement - указатель на существующего ребенка removedNode или 0 если таковых нет */
-        nodeReplacement = removedNode->childLeft;
+    if(removedNode->getLeftChild() != nullptr)                                  /* nodeReplacement - указатель на существующего ребенка removedNode или 0 если таковых нет */
+        nodeReplacement = removedNode->getLeftChild();
     else
-        nodeReplacement = removedNode->childRight;
+        nodeReplacement = removedNode->getRightChild();
+    if(removedNode != node)
+    {
+        int temp = node->getData();
+        node->setData(removedNode->getData());
+        removedNode->setData(temp);
+    }
     if(nodeReplacement != nullptr)                                        /* эта и следующие 9 строк - вырезание removedNode */
-        nodeReplacement->setParent(removedNode->parent.lock());
-    if(removedNode->parent.lock() == nullptr)
+        nodeReplacement->setParent(removedNode->getParent().lock());
+    if(removedNode->getParent().lock() == nullptr)
         rootNode = std::shared_ptr<Node>(nodeReplacement);
     else
     {
-        if (removedNode == (removedNode->parent).lock()->childLeft.get())
-            (removedNode->parent).lock()->setLeftChild(nodeReplacement);
+        if (removedNode == (removedNode->getParent()).lock()->getLeftChild().get())
+            (removedNode->getParent()).lock()->setLeftChild(nodeReplacement); // тут может сломаться
         else
-            (removedNode->parent).lock()->setRightChild(nodeReplacement);
+            (removedNode->getParent()).lock()->setRightChild(nodeReplacement);
     }
-    if(removedNode != node)
-        node->data = removedNode->getData();
+
 }
 
 
@@ -81,11 +103,11 @@ int Tree::insertNode(const int &value)
     {
         ptr1 = ptr;
         if (value < ptr.get()->getData())
-            ptr = ptr.get()->childLeft;
+            ptr = ptr.get()->getLeftChild();
         else
-            ptr = ptr.get()->childRight;
+            ptr = ptr.get()->getRightChild();
     }
-    newNode->parent = ptr1;
+    newNode->setParent(ptr1);
     if(ptr1 == nullptr)
     {
         rootNode = newNode;
@@ -93,9 +115,9 @@ int Tree::insertNode(const int &value)
     else
     {
         if(value < ptr1->getData())
-            ptr1->childLeft = std::shared_ptr<Node>(newNode);
+            ptr1->setLeftChild(std::shared_ptr<Node>(newNode));
         else
-            ptr1->childRight = std::shared_ptr<Node>(newNode);
+            ptr1->setRightChild(std::shared_ptr<Node>(newNode));
     }
     return 0;
 }
@@ -105,9 +127,9 @@ void Tree::printAllNodes(Node *node)
 {
     if(node != nullptr)
     {
-        printAllNodes(node->childLeft.get());
+        printAllNodes(node->getLeftChild().get());
         std::cout << node->getData() << std::endl;
-        printAllNodes(node->childRight.get());
+        printAllNodes(node->getRightChild().get());
     }
 }
 
@@ -118,13 +140,13 @@ Node* Tree::findSuccsessor(const int & val)
     Node* y;
     if(x == nullptr)
         return nullptr;
-    if (x->childRight != nullptr)
-        return findMin(x->childRight.get());
-    y = x->parent.lock().get();
-    while (y != nullptr && x == y->childRight.get())
+    if (x->getRightChild() != nullptr)
+        return findMin(x->getRightChild().get());
+    y = x->getParent().lock().get();
+    while (y != nullptr && x == y->getRightChild().get())
     {
         x = y;
-        y = y->parent.lock().get();
+        y = y->getParent().lock().get();
     }
     return y;
 }
@@ -132,15 +154,15 @@ Node* Tree::findSuccsessor(const int & val)
 
 Node* Tree::findMax(Node *x)
 {
-    while(x->childRight != nullptr)
-        x = x->childRight.get();
+    while(x->getRightChild() != nullptr)
+        x = x->getRightChild().get();
     return x;
 }
 
 Node* Tree::findMin(Node* x)
 {
-    while(x->childLeft != nullptr)
-        x=x->childLeft.get();
+    while(x->getLeftChild() != nullptr)
+        x=x->getLeftChild().get();
     return x;
 }
 
@@ -149,11 +171,17 @@ Node* Tree::findNode(Node * n, const int & val)
     if (n == 0 || val == n->getData())
         return n;
     if(val > n->getData())
-        return findNode(n->childRight.get(), val);
+        return findNode(n->getRightChild().get(), val);
     else
-        return findNode(n->childLeft.get(), val);
+        return findNode(n->getLeftChild().get(), val);
 }
 
 std::shared_ptr<Node> Tree::getRoot() {
     return rootNode;
 }
+
+Tree::~Tree()
+{
+
+}
+
